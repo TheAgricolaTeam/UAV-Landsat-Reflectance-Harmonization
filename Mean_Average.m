@@ -1,5 +1,5 @@
 % CODE TO HARMONIZE UAV AND LANDSAT 8 BANDS INFORMATION
-% USING LANDSAT 8 POINT SPREAD FUNCTION INFORMATION
+% USING LANDSAT 8 30m AVERAGE
 % By Alfonso Torres, 2016-2019 alfonso.torres@usu.edu
 
 % This code produces a Landsat derived image from UAV and then produces a
@@ -45,8 +45,8 @@ landsat_scale=10000;
 uav_scale=1; %one means no scale (so data goes from zero to one)
 
 % for processing the band name
-uav_band_order=1; %UAV multiband tpically is rgbnir, so red is 1, green 2, blue is 3, nir iis 4
-landsat_band_order=4; %red in L8 is band 4,green 3, blue 2, nir, 5
+uav_band_order=4; %UAV multiband tpically is rgbnir, so red is 1, green 2, blue is 3, nir iis 4
+landsat_band_order=5; %red in L8 is band 4,green 3, blue 2, nir, 5
 
 %% PROCESSING
 % locating images in directory
@@ -100,18 +100,18 @@ uav=uav(:,:,uav_band_order)/uav_scale;
 Xmax=size(uav,1); Ymax=size(uav,2);
 
 % load psf information for Landsat 8
-values=xlsread('Landsat_LCDM_OLI_MSF.xlsx');
-psf_range_landsat=size(values,1); %in meters
+% values=xlsread('Landsat_LCDM_OLI_MSF.xlsx');
+psf_range_landsat=info_landsat.PixelScale(1); %in meters
 pixelsize_uav=info_uav.PixelScale(1); % pixel size of UAV band
-psf_for_uav=fix(psf_range_landsat/pixelsize_uav); %number of UAV pixels within PSF 
+psf_for_uav=fix(psf_range_landsat/pixelsize_uav)+1; %number of UAV pixels within PSF 
 
-psf_AT = values(:,landsat_band_order+1); %PSF along Landsat track direction 
-psf_XT = values(:,landsat_band_order+1+7); % PSF across Landsat track direction
+psf_AT = ones(psf_for_uav,1); %PSF along Landsat track direction 
+psf_XT = ones(psf_for_uav,1); % PSF across Landsat track direction
 
 PSF=psf_AT*psf_XT';
 PSF(PSF<0)=0;
 
-PSF = imresize(PSF,(psf_for_uav+1)/psf_range_landsat);
+% PSF = imresize(PSF,(psf_for_uav)/psf_range_landsat);
 PSF = PSF/sum(PSF(:)); % ensuring 2D PSF sums one
 
 uav_landsat=zeros(size(x_landsat),'single'); %empty matrix for derived landsat from uav
@@ -123,8 +123,8 @@ parfor i=1:numel(x_landsat)
     [row_i,col_i] = map2pix(info_uav.RefMatrix,x_landsat(i),y_landsat(i));
     row_i=round(row_i); col_i=round(col_i);
 %     finding UAV pixel locations for corresponding PSF
-    xg= row_i-psf_for_uav/2:row_i+psf_for_uav/2;
-    yg= col_i-psf_for_uav/2:col_i+psf_for_uav/2;
+    xg= row_i-(psf_for_uav-1)/2:row_i+(psf_for_uav-1)/2;
+    yg= col_i-(psf_for_uav-1)/2:col_i+(psf_for_uav-1)/2;
     
     [X,Y] = meshgrid(xg,yg); % preparing UAV pixel locations for matrix operation
     
@@ -160,6 +160,7 @@ img_landsat(var_landsat<1)=NaN;
 % subplot(1,3,1),imagesc(im_landsat); axis image off; colorbar;
 % subplot(1,3,2),imagesc(var_landsat); axis image off; colorbar;
 % subplot(1,3,3),imagesc(landsat_im); axis image off; colorbar;
+%%
 %% regression
 mdl = fitlm(uav_landsat(:),img_landsat(:),'RobustOpts','on');
 disp(mdl);
@@ -175,7 +176,8 @@ result{2,1}=image_landsat.name;
 result{2,2}=landsat_band_order;
 result{2,3}=image_uav.name;
 result{2,4}=uav_band_order;
-result{2,7}='Point Spread Function';
+result{2,7}='Average Function';
+result{1,8}='R2';
 
 figure
 subplot(1,2,1),plot(uav_landsat(:),img_landsat(:),'.'); grid on;
@@ -196,6 +198,6 @@ xlabel('UAV reflectance');
 
 result{2,5}=coeff(2);
 result{2,6}=coeff(1);
-
+result{2,8}=mdl.Rsquared.Adjusted;
 
 disp('double click on result variable')
