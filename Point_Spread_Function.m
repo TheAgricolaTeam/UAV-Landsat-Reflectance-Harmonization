@@ -45,8 +45,8 @@ landsat_scale=10000;
 uav_scale=1; %one means no scale (so data goes from zero to one)
 
 % for processing the band name
-uav_band_order=1; %UAV multiband tpically is rgbnir, so red is 1, green 2, blue is 3, nir iis 4
-landsat_band_order=4; %red in L8 is band 4,green 3, blue 2, nir, 5
+uav_band_order=4; %UAV multiband tpically is rgbnir, so red is 1, green 2, blue is 3, nir iis 4
+landsat_band_order=5; %red in L8 is band 4,green 3, blue 2, nir, 5
 
 %% PROCESSING
 % locating images in directory
@@ -193,6 +193,7 @@ axis square
 title('UAV - Landsat after comparison');
 ylabel('Landsat reflectance');
 xlabel('UAV reflectance');
+sgtitle('PSF results')
 
 result{2,5}=coeff(2);
 result{2,6}=coeff(1);

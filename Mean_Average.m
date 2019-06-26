@@ -195,6 +195,7 @@ axis square
 title('UAV - Landsat after comparison');
 ylabel('Landsat reflectance');
 xlabel('UAV reflectance');
+sgtitle('Average Results')
 
 result{2,5}=coeff(2);
 result{2,6}=coeff(1);
